@@ -1,0 +1,16 @@
+{
+  "generatedAt": 1783662000000,
+  "source": {
+    "database": "fixture-state.sqlite",
+    "mode": "read-only"
+  },
+  "summary": {
+    "roots": 0,
+    "agents": 0,
+    "liveProcesses": 0,
+    "workingAgents": 0
+  },
+  "warnings": [],
+  "sessions": [],
+  "runtimes": []
+}

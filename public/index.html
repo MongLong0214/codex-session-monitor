@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="로컬 Codex 메인 및 서브 에이전트 세션 모니터" />
+    <title>Codex Session Monitor</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">LOCAL CODEX OPERATIONS</p>
+          <h1>Codex Session Monitor</h1>
+          <p class="subtitle">메인 에이전트와 서브 에이전트의 관계, 최근 활동, 로컬 런타임을 읽기 전용으로 표시합니다.</p>
+        </div>
+        <div class="header-actions">
+          <p id="refresh-state" class="refresh-state" aria-live="polite">불러오는 중</p>
+          <button id="refresh-button" class="button button-primary" type="button">지금 새로 고침</button>
+        </div>
+      </header>
+
+      <section class="notice" aria-label="데이터 해석 안내">
+        <strong>관측 기준</strong>
+        <span>세션 계층은 Codex 상태 DB, 실행 여부는 같은 작업 디렉터리의 Codex 프로세스를 기준으로 합니다. 세션 ID와 PID의 직접 연결은 표시하지 않습니다.</span>
+      </section>
+
+      <section id="metrics" class="metric-grid" aria-label="현재 요약"></section>
+
+      <section class="workspace-grid">
+        <div class="session-section">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">SESSION TREE</p>
+              <h2>현재 세션</h2>
+            </div>
+            <label class="toggle">
+              <input id="hide-completed" type="checkbox" />
+              <span>완료된 에이전트 숨기기</span>
+            </label>
+          </div>
+          <div id="session-list" class="session-list" aria-live="polite"></div>
+        </div>
+
+        <aside class="runtime-panel" aria-labelledby="runtime-heading">
+          <div class="section-heading compact">
+            <div>
+              <p class="eyebrow">LIVE RUNTIME</p>
+              <h2 id="runtime-heading">실행 중인 Codex</h2>
+            </div>
+            <span id="source-label" class="source-label">읽기 전용</span>
+          </div>
+          <div id="runtime-list" class="runtime-list"></div>
+        </aside>
+      </section>
+    </main>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,134 @@
+{
+  "generatedAt": 1783662000000,
+  "source": {
+    "database": "fixture-state.sqlite",
+    "mode": "read-only"
+  },
+  "summary": {
+    "roots": 2,
+    "agents": 5,
+    "liveProcesses": 2,
+    "workingAgents": 3
+  },
+  "warnings": [],
+  "sessions": [
+    {
+      "id": "root-research",
+      "title": "포트폴리오 분석 작업",
+      "agentName": "메인 에이전트",
+      "role": "main",
+      "cwd": "/Users/example/portfolio",
+      "model": "gpt-5",
+      "tokensUsed": 1200,
+      "updatedAt": 1783661999000,
+      "status": "working",
+      "edgeStatus": null,
+      "activity": {
+        "kind": "message",
+        "text": "시장 데이터 검증을 진행하고 있습니다.",
+        "timestamp": 1783661999000
+      },
+      "runtimePids": [401, 402],
+      "children": [
+        {
+          "id": "child-data",
+          "title": "데이터 검증",
+          "agentName": "데이터 담당",
+          "role": "subagent",
+          "cwd": "/Users/example/portfolio",
+          "model": "gpt-5",
+          "tokensUsed": 420,
+          "updatedAt": 1783661998000,
+          "status": "working",
+          "edgeStatus": "open",
+          "activity": {
+            "kind": "message",
+            "text": "이미지에서 사람들이 요청한 항목을 뽑아 줘",
+            "timestamp": 1783661998000
+          },
+          "runtimePids": [401, 402],
+          "children": []
+        },
+        {
+          "id": "child-review",
+          "title": "검토 결과",
+          "agentName": "검토 담당",
+          "role": "subagent",
+          "cwd": "/Users/example/portfolio",
+          "model": "gpt-5",
+          "tokensUsed": 390,
+          "updatedAt": 1783661900000,
+          "status": "completed",
+          "edgeStatus": "closed",
+          "activity": {
+            "kind": "completed",
+            "text": "작업 완료 신호",
+            "timestamp": 1783661900000
+          },
+          "runtimePids": [],
+          "children": []
+        },
+        {
+          "id": "child-summary",
+          "title": "요약 작성",
+          "agentName": "요약 담당",
+          "role": "subagent",
+          "cwd": "/Users/example/portfolio",
+          "model": "gpt-5",
+          "tokensUsed": 380,
+          "updatedAt": 1783661997000,
+          "status": "waiting",
+          "edgeStatus": "open",
+          "activity": {
+            "kind": "event",
+            "text": "https://fixture.example.test/runtime/this-is-an-intentionally-long-activity-token-without-spaces-that-must-wrap-inside-the-agent-card-instead-of-enlarging-the-session-tree",
+            "timestamp": 1783661997000
+          },
+          "runtimePids": [401, 402],
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "root-release",
+      "title": "이번 배포에서 이 이미지 작업을 보고해 줘: ~/WebstormProjects/video-art/OUTPUT_GAP_ANALYSIS.md",
+      "agentName": "메인 에이전트",
+      "role": "main",
+      "cwd": "/Users/example/WebstormProjects/video-art",
+      "model": "gpt-5",
+      "tokensUsed": 760,
+      "updatedAt": 1783661980000,
+      "status": "waiting",
+      "edgeStatus": null,
+      "activity": {
+        "kind": "event",
+        "text": "배포 결과를 기다립니다.",
+        "timestamp": 1783661980000
+      },
+      "runtimePids": [],
+      "children": []
+    }
+  ],
+  "runtimes": [
+    {
+      "pid": 401,
+      "ppid": 1,
+      "state": "S+",
+      "elapsed": "00:04:20",
+      "cpuPercent": 1.2,
+      "memoryPercent": 0.4,
+      "command": "codex",
+      "cwd": "/Users/example/portfolio"
+    },
+    {
+      "pid": 402,
+      "ppid": 1,
+      "state": "S+",
+      "elapsed": "00:01:12",
+      "cpuPercent": 0.8,
+      "memoryPercent": 0.3,
+      "command": "codex",
+      "cwd": "/Users/example/portfolio"
+    }
+  ]
+}

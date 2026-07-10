@@ -1,0 +1,15 @@
+node_modules/
+.idea/
+.omo/
+.next/
+out/
+dist/
+coverage/
+playwright-report/
+test-results/
+*.log
+npm-debug.log*
+.DS_Store
+.env
+.env.local
+.env*.local

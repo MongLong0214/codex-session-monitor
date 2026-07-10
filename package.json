@@ -1,0 +1,20 @@
+{
+  "name": "codex-session-monitor",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "description": "로컬 Codex 메인·서브 에이전트 세션 모니터",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test --test-concurrency=1",
+    "test:unit": "node --test test/session-data.test.mjs",
+    "test:e2e": "node --test --test-concurrency=1 test/e2e.test.mjs",
+    "check": "node --check server.mjs && node --check lib/session-data.mjs && node --check public/app.js && node --check test/e2e.test.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.61.1"
+  }
+}
