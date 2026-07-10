@@ -36,21 +36,21 @@ function repeatToLength(fragment: string, minLength: number): string {
 }
 
 const PROJECT_MONITOR: ProjectRef = {
-  cwd: "/Users/isaac/WebstormProjects/codex-session-monitor",
+  cwd: "/Users/dev/WebstormProjects/codex-session-monitor",
   name: "codex-session-monitor",
-  repoUrl: "git@github.com:MongLong0214/codex-session-monitor.git",
+  repoUrl: "git@github.com:example-user/codex-session-monitor.git",
 };
 
 const PROJECT_NEWSLETTER: ProjectRef = {
-  cwd: "/Users/isaac/WebstormProjects/stock-ai-newsletter",
-  name: "stock-ai-newsletter",
-  repoUrl: "https://github.com/MongLong0214/stock-ai-newsletter.git",
+  cwd: "/Users/dev/WebstormProjects/market-digest-service",
+  name: "market-digest-service",
+  repoUrl: "https://github.com/example-user/market-digest-service.git",
 };
 
 /** No origin remote — exercises the "repoUrl is null, fall back to cwd basename" path. */
 const PROJECT_POLARIS: ProjectRef = {
-  cwd: "/Users/isaac/WebstormProjects/polaris-web",
-  name: "polaris-web",
+  cwd: "/Users/dev/WebstormProjects/docs-portal",
+  name: "docs-portal",
   repoUrl: null,
 };
 
@@ -63,9 +63,9 @@ const LONG_TASK_TEXT = repeatToLength(
 );
 
 const PROJECT_LONG: ProjectRef = {
-  cwd: "/Users/isaac/WebstormProjects/very-long-workspace-path/packages/internal-tooling/dashboard-renderer",
+  cwd: "/Users/dev/WebstormProjects/very-long-workspace-path/packages/internal-tooling/dashboard-renderer",
   name: LONG_PROJECT_NAME,
-  repoUrl: "git@github.com:MongLong0214/very-long-workspace-path.git",
+  repoUrl: "git@github.com:example-user/very-long-workspace-path.git",
 };
 
 /** Two agents naming this same path — the fixture that a future concurrent_file_edit detector needs. */
@@ -484,7 +484,7 @@ function fixtureSpecs(now: number): FixtureSpec[] {
       model: "gpt-5.6-sol",
       reasoningEffort: "medium",
       status: { kind: "waiting", since: at(11 * MINUTE_MS) },
-      currentTask: "gh pr create --fill 로 생성한 https://github.com/MongLong0214/codex-session-monitor/pull/128 리뷰를 기다립니다.",
+      currentTask: "gh pr create --fill 로 생성한 https://github.com/example-user/codex-session-monitor/pull/128 리뷰를 기다립니다.",
       tokensUsed: 27_640,
       costUsd: null,
       startedAtOffsetMs: 2 * HOUR_MS,
@@ -521,7 +521,7 @@ function toAgent(spec: FixtureSpec, now: number): Agent {
     childIds: spec.childIds,
     cliVersion: spec.cliVersion,
     approvalMode: spec.approvalMode,
-    rolloutPath: `/Users/isaac/.codex/sessions/2026/07/10/rollout-${spec.id}.jsonl`,
+    rolloutPath: `/Users/dev/.codex/sessions/2026/07/10/rollout-${spec.id}.jsonl`,
   };
 }
 

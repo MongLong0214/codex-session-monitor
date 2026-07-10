@@ -29,7 +29,7 @@ describe("parseDashboardSettings", () => {
       visibleColumns: ["status", "agent"],
       columnWidths: { agent: 220 },
       statusFilter: ["failed", "blocked"],
-      projectFilter: ["/Users/isaac/WebstormProjects/v3"],
+      projectFilter: ["/Users/dev/WebstormProjects/v3"],
       branchFilter: ["dev"],
       sort: [{ id: "status", desc: false }],
     };
