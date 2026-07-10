@@ -1,0 +1,23 @@
+.counterItem {
+  list-style: none;
+}
+
+.counterButton {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-element);
+  padding: 2px var(--spacing-1);
+  cursor: pointer;
+}
+
+.counterButton[aria-pressed="true"] {
+  background: var(--color-background-muted);
+  border-color: var(--color-border);
+}
+
+.counterButton:hover {
+  background: var(--color-background-muted);
+}
