@@ -36,7 +36,8 @@ const SIGNAL_TOOLTIP: Partial<Record<AgentActionType, string>> = {
   open_terminal: "작업 디렉터리를 터미널에서 엽니다.",
 };
 
-const STOP_DIALOG_DESCRIPTION =
+/** Exported so the command palette's "stop current agent" reuses the exact same confirmation copy. */
+export const STOP_DIALOG_DESCRIPTION =
   "작업 디렉터리를 공유하는 프로세스에 SIGTERM을 보냅니다. 세션과 프로세스의 직접 매핑이 없어 같은 디렉터리의 다른 세션도 함께 종료될 수 있습니다. 되돌릴 수 없습니다.";
 
 interface AgentActionsProps {

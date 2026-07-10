@@ -12,7 +12,11 @@ import { AgentStatusKindSchema, type AgentStatusKind } from "@/domain/agent/stat
 import type { RowDensity } from "@/domain/settings";
 import { STATUS_LABEL } from "../status-presentation";
 import { COLUMN_LABELS, getHideableColumnIds, type AgentTableColumnId } from "./columns";
+import styles from "./table-toolbar.module.css";
 import type { AgentTableState } from "./use-table-state";
+
+/** Lands on the underlying `<input>` so the global "/" shortcut can focus it via getElementById. */
+export const SEARCH_INPUT_ID = "agent-table-search-input";
 
 const STATUS_OPTIONS = AgentStatusKindSchema.options.map((kind) => ({ value: kind, label: STATUS_LABEL[kind] }));
 
@@ -87,9 +91,10 @@ export function TableToolbar({ tableState, projects, branches, visibleRowCount, 
       startContent={
         <>
           <TextInput
+            id={SEARCH_INPUT_ID}
             label="에이전트 검색"
             isLabelHidden
-            placeholder="이름, 작업, 프로젝트, 브랜치 검색"
+            placeholder="이름, 작업, 프로젝트, 브랜치 검색 (/)"
             size="sm"
             startIcon="search"
             hasClear
@@ -149,6 +154,7 @@ export function TableToolbar({ tableState, projects, branches, visibleRowCount, 
             size="sm"
             value={density}
             onChange={(value) => setDensity(value as RowDensity)}
+            className={styles.densityControl}
           >
             {DENSITY_OPTIONS.map((option) => (
               <SegmentedControlItem key={option.value} value={option.value} label={option.label} />

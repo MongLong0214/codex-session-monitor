@@ -1,0 +1,17 @@
+/*
+ * Astryx SegmentedControl's default unselected-item text color (--color-text-secondary, which
+ * resolves to #737373 in the active Neutral theme) measures 4.16:1 against #f0f0f0 — short of
+ * WCAG AA's 4.5:1 minimum for normal text. This is a real axe-core `color-contrast` violation, not
+ * a style preference, and not fixable by swapping to a different *semantic* text token in the
+ * abstract — `--color-text-secondary` itself is the culprit at this specific background, verified
+ * live (getComputedStyle) rather than assumed from the generic token docs. `--color-text-primary`
+ * (#171717 in this theme) is used instead, which clears the ratio with room to spare.
+ *
+ * `.densityControl` lands on the SegmentedControl's own root element (it IS `.astryx-segmented-control`,
+ * not an ancestor of it) — no descendant combinator between them. No public prop exists for this
+ * (checked `astryx component SegmentedControl`), so this follows Astryx's documented external-override
+ * surface: the stable component class plus a design token, per `astryx docs styling`.
+ */
+.densityControl button span {
+  color: var(--color-text-primary);
+}

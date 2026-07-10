@@ -7,7 +7,7 @@ import type { ThemeMode } from "@/domain/settings";
 
 interface ThemeProviderProps {
   children: ReactNode;
-  /** Defaults to "system"; the dashboard settings popover (later task) will control this. */
+  /** Defaults to "system". DashboardApp feeds the persisted `settings.theme` here; the command palette's theme commands change it. */
   mode?: ThemeMode;
 }
 

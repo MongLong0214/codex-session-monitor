@@ -1,5 +1,5 @@
-import { DashboardRoot } from "@/features/dashboard/dashboard-root";
+import { DashboardApp } from "@/features/dashboard/dashboard-app";
 
 export default function Page() {
-  return <DashboardRoot />;
+  return <DashboardApp />;
 }

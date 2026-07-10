@@ -7,15 +7,19 @@ import type {
   SortingState,
   VisibilityState,
 } from "@tanstack/react-table";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AgentStatusKind } from "@/domain/agent/status";
-import type { RowDensity } from "@/domain/settings";
+import type { DashboardSettings, RowDensity } from "@/domain/settings";
 import { DEFAULT_DASHBOARD_SETTINGS } from "@/domain/settings";
 import { DEFAULT_COLUMN_VISIBILITY } from "./columns";
 import type { AgentTableFilters } from "./filter-sort";
+import { visibleColumnsFromVisibilityState, type PersistedTableState } from "./settings-mapping";
 
 /** Long enough to skip a burst of keystrokes, short enough that the table still feels live. */
 const SEARCH_DEBOUNCE_MS = 200;
+
+/** Column widths change on every frame of a resize drag; persist only the settled value. */
+const COLUMN_SIZING_PERSIST_DEBOUNCE_MS = 200;
 
 /** Elapsed-time cells re-derive from this; a minute is finer than the column's own resolution. */
 const NOW_TICK_MS = 30_000;
@@ -61,29 +65,106 @@ export interface AgentTableState {
   setRowSelection: OnChangeFn<RowSelectionState>;
 }
 
+export interface UseAgentTableStateOptions {
+  /**
+   * Persisted values to seed the state from, captured once as the `useState` initializers. The
+   * caller is responsible for only mounting this hook after settings have hydrated (see
+   * DashboardApp), so these are the real stored values, not the pre-hydration defaults.
+   */
+  initialState?: PersistedTableState;
+  /**
+   * Invoked whenever a persisted slice changes, with a patch already reshaped to DashboardSettings.
+   * The search text and row selection are intentionally transient and never reach this callback.
+   */
+  onPersist?: (patch: Partial<DashboardSettings>) => void;
+}
+
 /**
- * All table-local state in one place. Every slice is shaped exactly like its `domain/settings.ts`
+ * All table-local state in one place. Every persisted slice mirrors its `domain/settings.ts`
  * counterpart (`rowDensity`, `visibleColumns`, `columnWidths`, `sort`, and the three filter
- * arrays), so the persistence task can hydrate the initial values and subscribe to the setters
- * without reshaping anything.
+ * arrays); `initialState` hydrates them and each setter is wrapped to push the change back out
+ * through `onPersist`. Column widths persist on a debounce because their setter fires on every
+ * frame of a resize drag; every other slice persists on its discrete user action.
  */
-export function useAgentTableState(): AgentTableState {
+export function useAgentTableState(options: UseAgentTableStateOptions = {}): AgentTableState {
+  const { initialState, onPersist } = options;
+
+  // Kept in a ref so the wrapped setters stay referentially stable (react-table compares them).
+  const onPersistRef = useRef(onPersist);
+  useEffect(() => {
+    onPersistRef.current = onPersist;
+  });
+
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
-  const [statusKinds, setStatusKinds] = useState<AgentStatusKind[]>([]);
-  const [projectCwds, setProjectCwds] = useState<string[]>([]);
-  const [branches, setBranches] = useState<string[]>([]);
+  const [statusKinds, setStatusKindsState] = useState<AgentStatusKind[]>(initialState?.statusKinds ?? []);
+  const [projectCwds, setProjectCwdsState] = useState<string[]>(initialState?.projectCwds ?? []);
+  const [branches, setBranchesState] = useState<string[]>(initialState?.branches ?? []);
 
-  const [density, setDensity] = useState<RowDensity>(DEFAULT_DASHBOARD_SETTINGS.rowDensity);
-  const [sorting, setSorting] = useState<SortingState>([]);
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(DEFAULT_COLUMN_VISIBILITY);
-  const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({});
+  const [density, setDensityState] = useState<RowDensity>(
+    initialState?.density ?? DEFAULT_DASHBOARD_SETTINGS.rowDensity,
+  );
+  const [sorting, setSortingState] = useState<SortingState>(initialState?.sorting ?? []);
+  const [columnVisibility, setColumnVisibilityState] = useState<VisibilityState>(
+    initialState?.columnVisibility ?? DEFAULT_COLUMN_VISIBILITY,
+  );
+  const [columnSizing, setColumnSizing] = useState<ColumnSizingState>(initialState?.columnSizing ?? {});
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => setSearch(searchInput), SEARCH_DEBOUNCE_MS);
     return () => window.clearTimeout(timeoutId);
   }, [searchInput]);
+
+  // Skips the mount pass (the seeded value is already persisted) so a plain page load never writes.
+  const hasColumnSizingSettledRef = useRef(false);
+  useEffect(() => {
+    if (!hasColumnSizingSettledRef.current) {
+      hasColumnSizingSettledRef.current = true;
+      return;
+    }
+    const timeoutId = window.setTimeout(
+      () => onPersistRef.current?.({ columnWidths: columnSizing }),
+      COLUMN_SIZING_PERSIST_DEBOUNCE_MS,
+    );
+    return () => window.clearTimeout(timeoutId);
+  }, [columnSizing]);
+
+  const setStatusKinds = useCallback((next: AgentStatusKind[]) => {
+    setStatusKindsState(next);
+    onPersistRef.current?.({ statusFilter: next });
+  }, []);
+
+  const setProjectCwds = useCallback((next: string[]) => {
+    setProjectCwdsState(next);
+    onPersistRef.current?.({ projectFilter: next });
+  }, []);
+
+  const setBranches = useCallback((next: string[]) => {
+    setBranchesState(next);
+    onPersistRef.current?.({ branchFilter: next });
+  }, []);
+
+  const setDensity = useCallback((next: RowDensity) => {
+    setDensityState(next);
+    onPersistRef.current?.({ rowDensity: next });
+  }, []);
+
+  const setSorting = useCallback<OnChangeFn<SortingState>>((updater) => {
+    setSortingState((previous) => {
+      const next = typeof updater === "function" ? updater(previous) : updater;
+      onPersistRef.current?.({ sort: next });
+      return next;
+    });
+  }, []);
+
+  const setColumnVisibility = useCallback<OnChangeFn<VisibilityState>>((updater) => {
+    setColumnVisibilityState((previous) => {
+      const next = typeof updater === "function" ? updater(previous) : updater;
+      onPersistRef.current?.({ visibleColumns: visibleColumnsFromVisibilityState(next) });
+      return next;
+    });
+  }, []);
 
   const filters = useMemo<AgentTableFilters>(
     () => ({ search, statusKinds, projectCwds, branches }),
@@ -93,9 +174,10 @@ export function useAgentTableState(): AgentTableState {
   const resetFilters = useCallback(() => {
     setSearchInput("");
     setSearch("");
-    setStatusKinds([]);
-    setProjectCwds([]);
-    setBranches([]);
+    setStatusKindsState([]);
+    setProjectCwdsState([]);
+    setBranchesState([]);
+    onPersistRef.current?.({ statusFilter: [], projectFilter: [], branchFilter: [] });
   }, []);
 
   const hasActiveFilters =

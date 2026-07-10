@@ -12,6 +12,13 @@ export default defineConfig({
       "@": path.join(projectRoot, "src"),
     },
   },
+  // @astryxdesign/core lazy-loads some components (e.g. Timestamp -> Tooltip) via extensionless
+  // dynamic import()s. Left externalized, Node's native ESM resolver rejects those at test time
+  // ("Cannot find module"); routing the package through Vite's own resolver instead (which tolerates
+  // extensionless specifiers) fixes it.
+  ssr: {
+    noExternal: ["@astryxdesign/core"],
+  },
   test: {
     environment: "jsdom",
     setupFiles: ["./tests/setup.ts"],

@@ -1,6 +1,8 @@
 "use client";
 
 import { AppShell } from "@astryxdesign/core/AppShell";
+import { Heading } from "@astryxdesign/core/Heading";
+import { VisuallyHidden } from "@astryxdesign/core/VisuallyHidden";
 import type { ReactNode } from "react";
 import type { AgentStatusKind } from "@/domain/agent/status";
 import type { DashboardSummary } from "@/domain/dashboard";
@@ -80,6 +82,14 @@ export function DashboardAppShell({
         ) : undefined
       }
     >
+      {/*
+       * Visually hidden: the visible brand text in TopBar is a compact label, not a real page
+       * heading, and axe's page-has-heading-one rule (correctly) wants a real h1 announcing what
+       * this page is, independent of how the top bar is styled.
+       */}
+      <VisuallyHidden>
+        <Heading level={1}>Agent Session Monitor</Heading>
+      </VisuallyHidden>
       {children}
     </AppShell>
   );

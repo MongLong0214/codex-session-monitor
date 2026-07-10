@@ -40,9 +40,12 @@ export function StatusCounters({ summary, activeFilter, onToggleFilter }: Status
           </li>
         );
       })}
-      <Text type="supporting" hasTabularNumbers>
-        전체 {summary.totalAgents} · 프로젝트 {summary.activeProjects}
-      </Text>
+      {/* axe list-13: a <ul> may only directly contain <li> — wrap the trailing summary too. */}
+      <li className={styles.counterItem}>
+        <Text type="supporting" hasTabularNumbers>
+          전체 {summary.totalAgents} · 프로젝트 {summary.activeProjects}
+        </Text>
+      </li>
     </HStack>
   );
 }

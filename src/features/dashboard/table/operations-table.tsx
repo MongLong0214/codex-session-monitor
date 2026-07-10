@@ -4,7 +4,7 @@ import { CheckboxInput } from "@astryxdesign/core/CheckboxInput";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
-import { ToastViewport, useToast } from "@astryxdesign/core/Toast";
+import { useToast } from "@astryxdesign/core/Toast";
 import { getCoreRowModel, useReactTable, type Header } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
@@ -24,7 +24,7 @@ import {
 import { deriveBranchOptions, selectVisibleAgentIds } from "./filter-sort";
 import styles from "./operations-table.module.css";
 import { TableToolbar } from "./table-toolbar";
-import { useAgentTableState, useNowMs } from "./use-table-state";
+import { useNowMs, type AgentTableState } from "./use-table-state";
 
 /** Module-level so an empty snapshot doesn't hand the virtualizer a fresh array every render. */
 const EMPTY_AGENT_IDS: AgentId[] = [];
@@ -91,27 +91,27 @@ function sortIconOf(header: Header<AgentId, unknown>) {
 }
 
 export interface OperationsTableProps {
+  /**
+   * Owned by DashboardRoot so the command palette can share the same filter/density setters.
+   * The table only reads and drives it; it does not create it.
+   */
+  tableState: AgentTableState;
   onOpenDetail: (agentId: AgentId) => void;
 }
 
 /**
- * `useToast()` needs a ToastContext. `AppShell` does not mount one yet (its source carries a
- * `TODO: Include root providers (… LayerProvider)`), and without it the hook silently spins up a
- * second React root through `createRoot` and warns. Providing the viewport here keeps that cost
- * out of the app and stays correct if a root-level LayerProvider is added later — the nearest
- * provider wins.
+ * `useToast()` needs a ToastContext. A single shared `ToastViewport` is mounted once in
+ * `dashboard-root.tsx` (above this component and the command palette, which also calls
+ * `useToast()`) — mounting one here too would put two `role="region" aria-label="Notifications"`
+ * landmarks on the page at once, which is a real axe-core `landmark-unique` violation, not just a
+ * style nit. The nearest provider wins, so this component only needs the hook, never its own viewport.
  */
-export function OperationsTable({ onOpenDetail }: OperationsTableProps) {
-  return (
-    <ToastViewport>
-      <OperationsTableContent onOpenDetail={onOpenDetail} />
-    </ToastViewport>
-  );
+export function OperationsTable({ tableState, onOpenDetail }: OperationsTableProps) {
+  return <OperationsTableContent tableState={tableState} onOpenDetail={onOpenDetail} />;
 }
 
-function OperationsTableContent({ onOpenDetail }: OperationsTableProps) {
+function OperationsTableContent({ tableState, onOpenDetail }: OperationsTableProps) {
   const { data } = useDashboardSnapshot();
-  const tableState = useAgentTableState();
   const nowMs = useNowMs();
   const showToast = useToast();
   const { mutate: runAgentAction } = useAgentAction();

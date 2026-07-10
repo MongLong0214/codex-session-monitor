@@ -3,31 +3,68 @@
 import { Center } from "@astryxdesign/core/Center";
 import { Spinner } from "@astryxdesign/core/Spinner";
 import { Text } from "@astryxdesign/core/Text";
-import { useCallback, useMemo, useState } from "react";
-import type { AgentId } from "@/domain/agent/agent";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { AgentStatusKind } from "@/domain/agent/status";
 import type { Incident } from "@/domain/incident/incident";
+import type { DashboardSettings } from "@/domain/settings";
 import { useDashboardSnapshot } from "@/lib/query/use-dashboard-snapshot";
 import { useRealtimeSync } from "@/lib/query/use-realtime-sync";
+import { DashboardWorkspace } from "./dashboard-workspace";
 import { deriveCriticalIncidents, deriveProjectNavEntries } from "./selectors";
 import { DashboardAppShell } from "./shell/dashboard-app-shell";
 import type { DashboardView } from "./shell/side-nav";
-import { DetailPanel } from "./detail-panel/detail-panel";
-import { OperationsTable } from "./table/operations-table";
+import { SEARCH_INPUT_ID } from "./table/table-toolbar";
 
-export function DashboardRoot() {
+interface DashboardRootProps {
+  settings: DashboardSettings;
+  onUpdateSettings: (patch: Partial<DashboardSettings>) => void;
+}
+
+/** "/" focuses the table search — but not while the user is already typing into a field. */
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+  return (
+    target.tagName === "INPUT" ||
+    target.tagName === "TEXTAREA" ||
+    target.tagName === "SELECT" ||
+    target.isContentEditable
+  );
+}
+
+export function DashboardRoot({ settings, onUpdateSettings }: DashboardRootProps) {
   const { data, isLoading, isError, error } = useDashboardSnapshot();
   const { status: connectionStatus } = useRealtimeSync();
 
   const [statusFilter, setStatusFilter] = useState<AgentStatusKind[]>([]);
   const [selectedView, setSelectedView] = useState<DashboardView>("all");
-  const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [selectedAgentId, setSelectedAgentId] = useState<AgentId | null>(null);
+  const [isCommandPaletteOpen, setCommandPaletteOpen] = useState(false);
 
   const toggleStatusFilter = useCallback((status: AgentStatusKind) => {
     setStatusFilter((current) =>
       current.includes(status) ? current.filter((value) => value !== status) : [...current, status],
     );
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setCommandPaletteOpen((open) => !open);
+        return;
+      }
+      if (event.key === "/" && !event.metaKey && !event.ctrlKey && !event.altKey && !isEditableTarget(event.target)) {
+        const input = document.getElementById(SEARCH_INPUT_ID);
+        if (input instanceof HTMLInputElement) {
+          event.preventDefault();
+          input.focus();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
   const projects = useMemo(() => (data ? deriveProjectNavEntries(data) : []), [data]);
@@ -60,11 +97,9 @@ export function DashboardRoot() {
       onToggleStatusFilter={toggleStatusFilter}
       connectionStatus={connectionStatus}
       lastSyncedAt={data.lastSyncedAt}
-      onOpenCommandPalette={() => {
-        /* Command palette lands in a later task; trigger is wired now so the button isn't dead. */
-      }}
-      isSidebarCollapsed={isSidebarCollapsed}
-      onSidebarCollapsedChange={setSidebarCollapsed}
+      onOpenCommandPalette={() => setCommandPaletteOpen(true)}
+      isSidebarCollapsed={settings.sidebarCollapsed}
+      onSidebarCollapsedChange={(isCollapsed) => onUpdateSettings({ sidebarCollapsed: isCollapsed })}
       selectedView={selectedView}
       onSelectAll={() => setSelectedView("all")}
       onSelectIncidents={() => setSelectedView("incidents")}
@@ -73,8 +108,12 @@ export function DashboardRoot() {
       criticalIncidents={criticalIncidents}
       onSelectIncident={handleSelectIncident}
     >
-      <OperationsTable onOpenDetail={setSelectedAgentId} />
-      <DetailPanel agentId={selectedAgentId} onClose={() => setSelectedAgentId(null)} />
+      <DashboardWorkspace
+        settings={settings}
+        onUpdateSettings={onUpdateSettings}
+        isCommandPaletteOpen={isCommandPaletteOpen}
+        onCommandPaletteOpenChange={setCommandPaletteOpen}
+      />
     </DashboardAppShell>
   );
 }
