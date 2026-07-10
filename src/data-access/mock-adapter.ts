@@ -12,7 +12,7 @@ const MINUTE_MS = 60_000;
 const HOUR_MS = 60 * MINUTE_MS;
 
 const NO_CONTROL_CHANNEL_MESSAGE =
-  "이 모니터는 읽기 전용 관찰자입니다. 외부에서 실행된 Codex 세션의 stdin/PTY 제어 채널이 없어 이 동작을 수행할 수 없습니다.";
+  "이 모니터는 읽기 전용 관찰자입니다. 외부에서 실행된 세션의 stdin/PTY 제어 채널이 없어 이 동작을 수행할 수 없습니다.";
 
 /** Deterministic PRNG. The bulk generator must be byte-identical for the same (count, seed, now). */
 function mulberry32(seed: number): () => number {
@@ -54,6 +54,16 @@ const PROJECT_POLARIS: ProjectRef = {
   repoUrl: null,
 };
 
+/**
+ * A Claude-Code-hosted project. repoUrl is null because Claude Code session data carries no
+ * git-origin URL — matching real claude-code-adapter behavior, not a fixture gap.
+ */
+const PROJECT_CLAUDE_LAB: ProjectRef = {
+  cwd: "/Users/dev/workspace/agent-playground",
+  name: "agent-playground",
+  repoUrl: null,
+};
+
 /** 150+ char name/branch/task, for column truncation and ellipsis testing. */
 const LONG_PROJECT_NAME = repeatToLength("extremely-long-monorepo-package-name-that-should-truncate-", 168);
 const LONG_BRANCH_NAME = repeatToLength("feature/very-long-branch-name-for-truncation-testing-", 154);
@@ -80,6 +90,8 @@ const LOG_SHAPED_TASK = [
 interface FixtureSpec {
   id: string;
   displayName: string;
+  /** Omitted ⇒ "codex"; the Claude Code fixtures set it explicitly to exercise the new discriminator. */
+  source?: Agent["source"];
   role: Agent["role"];
   project: ProjectRef;
   branch: string | null;
@@ -496,13 +508,117 @@ function fixtureSpecs(now: number): FixtureSpec[] {
       cliVersion: "0.144.1",
       approvalMode: "never",
     },
+    {
+      // Claude Code 세션은 실제 토큰 사용량으로 진짜 비용을 계산할 수 있어 costUsd가 non-null이다.
+      id: "mock-claude-refactor",
+      displayName: "타입 안전성 리팩터링 계획 수립",
+      source: "claude_code",
+      role: "main",
+      project: PROJECT_CLAUDE_LAB,
+      branch: "main",
+      // Claude Code 세션 데이터에는 커밋 SHA 필드가 없다 — 실제 어댑터도 항상 null이다.
+      commitSha: null,
+      model: "claude-opus-4-8",
+      // reasoning_effort 개념이 없다 — 실제 어댑터도 null.
+      reasoningEffort: null,
+      status: { kind: "running", startedAt: at(2 * HOUR_MS), lastHeartbeatAt: at(8_000) },
+      currentTask: "도구 실행: Edit — src/lib 전반의 any 타입을 제거하는 중입니다.",
+      tokensUsed: 1_284_502,
+      costUsd: 8.47,
+      startedAtOffsetMs: 2 * HOUR_MS,
+      updatedAtOffsetMs: 8_000,
+      lastHeartbeatOffsetMs: 8_000,
+      // Claude CLI 프로세스는 세션과 신뢰성 있게 매핑되지 않는다 — 항상 빈 배열.
+      runtimePids: [],
+      parentId: null,
+      childIds: [],
+      // Claude Code CLI 버전 형식.
+      cliVersion: "2.1.202",
+      // permissionMode 를 approvalMode 로 매핑한다.
+      approvalMode: "auto",
+    },
+    {
+      id: "mock-claude-tests",
+      displayName: "Vitest 커버리지 보강",
+      source: "claude_code",
+      role: "main",
+      // 같은 cwd 를 Codex 세션과 공유 — 병합 시 ProjectRef 가 하나로 합쳐지는지 검증하는 픽스처.
+      project: PROJECT_MONITOR,
+      branch: "main",
+      commitSha: null,
+      model: "claude-sonnet-5",
+      reasoningEffort: null,
+      status: { kind: "waiting", since: at(9 * MINUTE_MS) },
+      currentTask: "사용자 입력 대기 중: 테스트 픽스처 명명 규칙을 확인해 주세요.",
+      tokensUsed: 642_180,
+      costUsd: 2.31,
+      startedAtOffsetMs: 70 * MINUTE_MS,
+      updatedAtOffsetMs: 9 * MINUTE_MS,
+      lastHeartbeatOffsetMs: 9 * MINUTE_MS,
+      runtimePids: [],
+      parentId: null,
+      childIds: [],
+      cliVersion: "2.1.199",
+      approvalMode: "normal",
+    },
+    {
+      // 51분 무활동 → stale_heartbeat 인시던트를 트리거한다 (임계값 30분).
+      id: "mock-claude-stale",
+      displayName: "문서 사이트 리브랜딩",
+      source: "claude_code",
+      role: "main",
+      project: PROJECT_CLAUDE_LAB,
+      branch: "docs/rebrand",
+      commitSha: null,
+      model: "claude-opus-4-8",
+      reasoningEffort: null,
+      status: { kind: "stale", lastHeartbeatAt: at(51 * MINUTE_MS) },
+      currentTask: "도구 실행: Write — 랜딩 페이지 카피를 다시 쓰던 중 응답이 끊겼습니다.",
+      tokensUsed: 318_744,
+      costUsd: 1.06,
+      startedAtOffsetMs: 3 * HOUR_MS,
+      updatedAtOffsetMs: 51 * MINUTE_MS,
+      lastHeartbeatOffsetMs: 51 * MINUTE_MS,
+      runtimePids: [],
+      parentId: null,
+      childIds: [],
+      cliVersion: "2.1.199",
+      approvalMode: "auto",
+    },
+    {
+      // 가격표에 없는 모델 → costUsd 는 정직하게 null (부분 합계를 완전한 총액처럼 보이게 하지 않는다).
+      id: "mock-claude-unknown-model",
+      displayName: "실험적 모델로 프로토타이핑",
+      source: "claude_code",
+      role: "main",
+      project: PROJECT_CLAUDE_LAB,
+      branch: "spike/new-model",
+      commitSha: null,
+      model: "claude-fable-5",
+      reasoningEffort: null,
+      status: { kind: "running", startedAt: at(40 * MINUTE_MS), lastHeartbeatAt: at(15_000) },
+      currentTask: "가격표에 없는 모델을 사용 중이라 비용을 계산할 수 없습니다.",
+      tokensUsed: 205_991,
+      costUsd: null,
+      startedAtOffsetMs: 40 * MINUTE_MS,
+      updatedAtOffsetMs: 15_000,
+      lastHeartbeatOffsetMs: 15_000,
+      runtimePids: [],
+      parentId: null,
+      childIds: [],
+      cliVersion: "2.1.202",
+      approvalMode: "auto",
+    },
   ];
 }
 
 function toAgent(spec: FixtureSpec, now: number): Agent {
+  const source = spec.source ?? "codex";
+
   return {
     id: spec.id,
     displayName: spec.displayName,
+    source,
     role: spec.role,
     project: spec.project,
     branch: spec.branch,
@@ -521,7 +637,10 @@ function toAgent(spec: FixtureSpec, now: number): Agent {
     childIds: spec.childIds,
     cliVersion: spec.cliVersion,
     approvalMode: spec.approvalMode,
-    rolloutPath: `/Users/dev/.codex/sessions/2026/07/10/rollout-${spec.id}.jsonl`,
+    rolloutPath:
+      source === "claude_code"
+        ? `/Users/dev/.claude/projects/-Users-dev-workspace-${spec.id}/${spec.id}.jsonl`
+        : `/Users/dev/.codex/sessions/2026/07/10/rollout-${spec.id}.jsonl`,
   };
 }
 
@@ -588,7 +707,7 @@ function toSnapshot(agents: readonly Agent[], now: number): DashboardSnapshot {
   };
 }
 
-/** 17 hand-written agents covering all nine AgentStatusKind values across four projects. */
+/** 21 hand-written agents (17 Codex + 4 Claude Code) covering all nine AgentStatusKind values. */
 export function buildMockSnapshot(now: number): DashboardSnapshot {
   return toSnapshot(
     fixtureSpecs(now).map((spec) => toAgent(spec, now)),
@@ -677,6 +796,8 @@ export function generateBulkSnapshot(count: number, seed: number, now: number): 
     agents.push({
       id,
       displayName: `${project.name} 작업 #${index}`,
+      /** Every third bulk agent is Claude-Code-sourced so virtualization stress covers both sources. */
+      source: index % 3 === 0 ? "claude_code" : "codex",
       role: isMain ? "main" : "subagent",
       project,
       branch: index % 9 === 0 ? null : branch,

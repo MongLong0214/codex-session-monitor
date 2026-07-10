@@ -7,6 +7,7 @@ import {
   type BulkAgentActionResponse,
 } from "@/domain/agent/actions";
 import type { AgentId } from "@/domain/agent/agent";
+import { AgentLogsResponseSchema, type AgentLogsResponse } from "@/domain/agent/logs";
 import { DashboardSnapshotSchema, type DashboardSnapshot } from "@/domain/dashboard";
 
 /** Same-origin local app — no base URL indirection to configure. */
@@ -65,6 +66,12 @@ async function requestJson(path: string, init?: JsonRequestInit): Promise<unknow
 export async function fetchDashboardSnapshot(signal?: AbortSignal): Promise<DashboardSnapshot> {
   const json = await requestJson(DASHBOARD_SNAPSHOT_ENDPOINT, signal ? { signal } : undefined);
   return DashboardSnapshotSchema.parse(json);
+}
+
+export async function fetchAgentLogs(agentId: AgentId, limit: number, signal?: AbortSignal): Promise<AgentLogsResponse> {
+  const path = `/api/agents/${encodeURIComponent(agentId)}/logs?limit=${limit}`;
+  const json = await requestJson(path, signal ? { signal } : undefined);
+  return AgentLogsResponseSchema.parse(json);
 }
 
 export async function postAgentAction(agentId: AgentId, request: AgentActionRequest): Promise<AgentActionResult> {

@@ -5,8 +5,8 @@ import { ThemeProvider } from "@/components/providers/theme-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Codex Session Monitor",
-  description: "로컬 Codex 메인·서브 에이전트 세션 모니터",
+  title: "Agent Session Monitor",
+  description: "로컬 Codex·Claude Code 에이전트 세션 모니터",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

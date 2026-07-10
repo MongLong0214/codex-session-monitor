@@ -1,0 +1,194 @@
+.root {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  background-color: var(--color-background-surface);
+}
+
+.bulkBar {
+  padding: var(--spacing-1) var(--spacing-3);
+  background-color: var(--color-background-muted);
+  border-bottom: var(--border-width) solid var(--color-border);
+}
+
+.scrollContainer {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+/*
+ * `display: grid` on the table (and flex on its rows) is what makes fixed column widths, sticky
+ * columns and absolutely-positioned virtual rows possible. It also strips the implicit ARIA table
+ * roles, which is why every element below re-declares its role explicitly in the TSX. This is not
+ * an ARIA grid — just native table semantics restored after CSS removed them.
+ */
+.table {
+  display: grid;
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.thead {
+  display: grid;
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+
+.headerRow {
+  display: flex;
+  width: 100%;
+}
+
+.th {
+  display: flex;
+  position: relative;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--spacing-1);
+  box-sizing: border-box;
+  height: var(--size-element-lg);
+  padding: 0 var(--spacing-2);
+  overflow: hidden;
+  background-color: var(--color-background-surface);
+  border-bottom: var(--border-width) solid var(--color-border);
+}
+
+.thSticky {
+  position: sticky;
+  z-index: 1;
+}
+
+.sortButton {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+  color: inherit;
+  font: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-inner);
+  cursor: pointer;
+}
+
+.sortButton:focus-visible,
+.detailTrigger:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.resizeHandle {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  width: 5px;
+  background-color: transparent;
+  cursor: col-resize;
+  touch-action: none;
+  user-select: none;
+}
+
+.resizeHandle:hover,
+.resizeHandle[data-resizing="true"] {
+  background-color: var(--color-accent);
+}
+
+.tbody {
+  display: grid;
+  position: relative;
+}
+
+/*
+ * Sticky cells must hide the content scrolling beneath them, so they need an opaque base. The row
+ * tint (hover / selected) is a translucent token, so it is layered on top as a background-image on
+ * both the row and its sticky cells — `--row-tint` inherits, keeping the two in lockstep.
+ */
+.row {
+  --row-tint: transparent;
+
+  display: flex;
+  position: absolute;
+  top: 0;
+  left: 0;
+  align-items: stretch;
+  width: 100%;
+  height: var(--row-height);
+  background-color: var(--color-background-surface);
+  background-image: linear-gradient(var(--row-tint), var(--row-tint));
+  border-bottom: var(--border-width) solid var(--color-border);
+}
+
+.row:hover {
+  --row-tint: var(--color-overlay-hover);
+}
+
+.rowSelected {
+  --row-tint: var(--color-accent-muted);
+}
+
+.row:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.td {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--spacing-1);
+  box-sizing: border-box;
+  min-width: 0;
+  padding: 0 var(--spacing-2);
+  overflow: hidden;
+}
+
+.tdSticky {
+  position: sticky;
+  z-index: 1;
+  background-color: var(--color-background-surface);
+  background-image: linear-gradient(var(--row-tint), var(--row-tint));
+}
+
+.tdEnd {
+  justify-content: flex-end;
+}
+
+.stackedCell {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.subagentIndent {
+  padding-inline-start: var(--spacing-3);
+  min-width: 0;
+  overflow: hidden;
+}
+
+.detailTrigger {
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-inner);
+  cursor: pointer;
+}
+
+.detailTrigger:hover {
+  text-decoration: underline;
+}
+
+.actionsCell {
+  width: 100%;
+}

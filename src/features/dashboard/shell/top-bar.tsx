@@ -33,7 +33,7 @@ export function TopBar({
   return (
     <TopNav
       label="대시보드 상단 바"
-      heading={<Text type="label">Codex Session Monitor</Text>}
+      heading={<Text type="label">Agent Session Monitor</Text>}
       centerContent={
         <StatusCounters summary={summary} activeFilter={statusFilter} onToggleFilter={onToggleStatusFilter} />
       }

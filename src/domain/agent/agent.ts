@@ -13,6 +13,8 @@ export type ProjectRef = z.infer<typeof ProjectRefSchema>;
 export const AgentSchema = z.object({
   id: z.string(),
   displayName: z.string(),
+  /** Which CLI produced this session — the always-present discriminator between the two sources. */
+  source: z.enum(["codex", "claude_code"]),
   role: z.enum(["main", "subagent"]),
   project: ProjectRefSchema,
   branch: z.string().nullable(),

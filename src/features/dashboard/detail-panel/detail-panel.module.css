@@ -1,0 +1,43 @@
+/*
+ * Responsive contract (see `astryx docs layout`, "Responsive Contract"):
+ *   > 1024px   docked inspector, 380–520px, user-resizable via useResizable
+ *   <= 1024px  overlay drawer pinned to the viewport's end edge; the content column keeps its width
+ *
+ * `position: relative` is what lets the overlay-mode ResizeHandle anchor to this panel:
+ * LayoutPanel itself is statically positioned.
+ */
+.panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--color-background-surface);
+}
+
+@media (max-width: 1024px) {
+  .panel {
+    position: fixed;
+    inset-block: 0;
+    inset-inline-end: 0;
+    z-index: 30;
+    max-width: 100vw;
+    box-shadow: 0 0 24px var(--color-shadow);
+  }
+}
+
+/* The header and the actions row stay pinned; only the active tab's body scrolls. */
+.tabPanel {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--spacing-3);
+}
+
+.wrapAnywhere {
+  overflow-wrap: anywhere;
+}
+
+.reasonNote {
+  border-inline-start: 2px solid var(--color-border-emphasized);
+  padding-inline-start: var(--spacing-1-5);
+}

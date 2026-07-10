@@ -4,6 +4,7 @@ import { Center } from "@astryxdesign/core/Center";
 import { Spinner } from "@astryxdesign/core/Spinner";
 import { Text } from "@astryxdesign/core/Text";
 import { useCallback, useMemo, useState } from "react";
+import type { AgentId } from "@/domain/agent/agent";
 import type { AgentStatusKind } from "@/domain/agent/status";
 import type { Incident } from "@/domain/incident/incident";
 import { useDashboardSnapshot } from "@/lib/query/use-dashboard-snapshot";
@@ -11,6 +12,8 @@ import { useRealtimeSync } from "@/lib/query/use-realtime-sync";
 import { deriveCriticalIncidents, deriveProjectNavEntries } from "./selectors";
 import { DashboardAppShell } from "./shell/dashboard-app-shell";
 import type { DashboardView } from "./shell/side-nav";
+import { DetailPanel } from "./detail-panel/detail-panel";
+import { OperationsTable } from "./table/operations-table";
 
 export function DashboardRoot() {
   const { data, isLoading, isError, error } = useDashboardSnapshot();
@@ -19,6 +22,7 @@ export function DashboardRoot() {
   const [statusFilter, setStatusFilter] = useState<AgentStatusKind[]>([]);
   const [selectedView, setSelectedView] = useState<DashboardView>("all");
   const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [selectedAgentId, setSelectedAgentId] = useState<AgentId | null>(null);
 
   const toggleStatusFilter = useCallback((status: AgentStatusKind) => {
     setStatusFilter((current) =>
@@ -69,7 +73,8 @@ export function DashboardRoot() {
       criticalIncidents={criticalIncidents}
       onSelectIncident={handleSelectIncident}
     >
-      <Text type="supporting">운영 테이블은 다음 단계에서 연결됩니다. 현재 에이전트 수: {data.allIds.length}</Text>
+      <OperationsTable onOpenDetail={setSelectedAgentId} />
+      <DetailPanel agentId={selectedAgentId} onClose={() => setSelectedAgentId(null)} />
     </DashboardAppShell>
   );
 }

@@ -10,6 +10,7 @@ import type { AgentStatus, AgentStatusKind } from "@/domain/agent/status";
 import type { DashboardSnapshot, DashboardSummary } from "@/domain/dashboard";
 
 import type { AgentCommandRepository } from "./agent-command-repository";
+import { collectClaudeCodeAgents } from "./claude-code-adapter";
 import type { DashboardRepository } from "./dashboard-repository";
 import { STALE_HEARTBEAT_THRESHOLD_MS, detectIncidents } from "./incident-detection";
 
@@ -21,16 +22,18 @@ const OBSERVED_IDLE_MS = STALE_HEARTBEAT_THRESHOLD_MS;
 const SNAPSHOT_CACHE_MS = 1_000;
 const ACTIVITY_READ_CONCURRENCY = 4;
 const MAX_EXEC_BUFFER = 8 * 1024 * 1024;
-const TAIL_BYTES = 640_000;
+/** Exported so the log reader can report `isTruncated` against the same window it actually read. */
+export const TAIL_BYTES = 640_000;
 const DIFF_OUTPUT_LIMIT = 2_000;
 
 const NO_CONTROL_CHANNEL_MESSAGE =
-  "이 모니터는 읽기 전용 관찰자입니다. 외부에서 실행된 Codex 세션의 stdin/PTY 제어 채널이 없어 이 동작을 수행할 수 없습니다.";
+  "이 모니터는 읽기 전용 관찰자입니다. 외부에서 실행된 세션의 stdin/PTY 제어 채널이 없어 이 동작을 수행할 수 없습니다.";
 
 /** Legacy 6-state classifier vocabulary, preserved verbatim from lib/session-data.mjs. */
 type LegacyStatusKind = "completed" | "working" | "observed" | "waiting" | "stale" | "unknown";
 
-interface RolloutActivity {
+/** Exported so the log reader (local-agent-logs.ts) interprets rollout events through this module. */
+export interface RolloutActivity {
   kind: string;
   text: string;
   timestamp: number | null;
@@ -524,7 +527,11 @@ async function getRunningCodexProcesses(): Promise<CodexProcess[]> {
   }));
 }
 
-async function readTail(filePath: string | null, maxBytes = TAIL_BYTES): Promise<string> {
+/**
+ * Reads the last `maxBytes` of a file and drops the leading partial record. Exported so the log
+ * reader shares this exact tail semantics instead of re-deriving it.
+ */
+export async function readTail(filePath: string | null, maxBytes = TAIL_BYTES): Promise<string> {
   if (!filePath) {
     return "";
   }
@@ -1086,6 +1093,7 @@ function buildContent(
     byId[id] = {
       id,
       displayName: getDisplayTitle(thread, isRoot),
+      source: "codex",
       role: isRoot ? "main" : "subagent",
       project,
       branch: thread.gitBranch,
@@ -1114,6 +1122,77 @@ function buildContent(
   return { byId, allIds, projects, incidents, summary: buildSummary(agents, projects), warnings };
 }
 
+/**
+ * Merges Claude-Code-sourced agents into the Codex snapshot content — the single orchestration point
+ * where the two sources become one snapshot. Each source's own extraction logic stays in its own file
+ * (Codex above, Claude in claude-code-adapter.ts); only this final join lives here. Summary is rebuilt
+ * over the union (and, unlike buildSummary, sums the real per-session cost that Claude sessions carry),
+ * projects are de-duplicated by cwd across both sources, and incidents are re-detected over everyone.
+ */
+function mergeClaudeContent(
+  codex: SnapshotContent,
+  claude: readonly Agent[],
+  claudeWarnings: string[],
+  now: number,
+): SnapshotContent {
+  if (claude.length === 0) {
+    return claudeWarnings.length === 0 ? codex : { ...codex, warnings: [...codex.warnings, ...claudeWarnings] };
+  }
+
+  const byId = { ...codex.byId };
+  const allIds = [...codex.allIds];
+  for (const agent of claude) {
+    if (!byId[agent.id]) {
+      allIds.push(agent.id);
+    }
+    byId[agent.id] = agent;
+  }
+
+  const projects = [...codex.projects];
+  const seenProjectCwds = new Set(projects.map((project) => project.cwd));
+  for (const agent of claude) {
+    if (!seenProjectCwds.has(agent.project.cwd)) {
+      seenProjectCwds.add(agent.project.cwd);
+      projects.push(agent.project);
+    }
+  }
+
+  const agents = allIds.map((id) => byId[id]).filter((agent): agent is Agent => agent !== undefined);
+
+  const statusCounts: Record<AgentStatusKind, number> = {
+    running: 0,
+    waiting: 0,
+    approval_required: 0,
+    blocked: 0,
+    failed: 0,
+    completed: 0,
+    paused: 0,
+    stale: 0,
+    offline: 0,
+  };
+  let sessionCostUsd: number | null = null;
+  for (const agent of agents) {
+    statusCounts[agent.status.kind] += 1;
+    if (agent.costUsd !== null) {
+      sessionCostUsd = (sessionCostUsd ?? 0) + agent.costUsd;
+    }
+  }
+
+  return {
+    byId,
+    allIds,
+    projects,
+    incidents: detectIncidents({ agents, projects, now }),
+    summary: {
+      totalAgents: agents.length,
+      activeProjects: projects.length,
+      statusCounts,
+      sessionCostUsd: sessionCostUsd === null ? null : Number(sessionCostUsd.toFixed(2)),
+    },
+    warnings: [...codex.warnings, ...claudeWarnings],
+  };
+}
+
 let cachedSnapshot: DashboardSnapshot | null = null;
 let cachedSnapshotAt = 0;
 let snapshotInFlight: Promise<DashboardSnapshot> | null = null;
@@ -1121,9 +1200,17 @@ let revision = 0;
 let lastFingerprint: string | null = null;
 
 async function buildDashboardSnapshot(now: number): Promise<DashboardSnapshot> {
-  const [databasePath, processes] = await Promise.all([discoverStateDatabase(), getRunningCodexProcesses()]);
+  const [databasePath, processes, claude] = await Promise.all([
+    discoverStateDatabase(),
+    getRunningCodexProcesses(),
+    /** Never rejects (see collectClaudeCodeAgents); a defensive catch keeps Codex agents visible regardless. */
+    collectClaudeCodeAgents(now).catch(() => ({
+      agents: [],
+      warnings: ["Claude Code 세션 읽기 경고: 세션을 수집하지 못했습니다."],
+    })),
+  ]);
 
-  const content = await (async (): Promise<SnapshotContent> => {
+  const codexContent = await (async (): Promise<SnapshotContent> => {
     if (!databasePath) {
       return emptyContent(["Codex 상태 데이터베이스를 찾지 못했습니다."]);
     }
@@ -1137,6 +1224,8 @@ async function buildDashboardSnapshot(now: number): Promise<DashboardSnapshot> {
 
     return buildContent(threads, edges, processes, activities, warnings, now);
   })();
+
+  const content = mergeClaudeContent(codexContent, claude.agents, claude.warnings, now);
 
   /**
    * revision only advances when the observable content changed, so a client can treat an unchanged
